@@ -18,12 +18,13 @@ def loadImages(indices, Y_vector):
         print(filenames[index])
         print(Y_vector[index])
         X[i] = cv2.imread(filenames[index])
-        Y[i] = Y_vector[i]
+        Y[i] = Y_vector[index]
     return X,Y
 
 def main():
     arr = np.load('vectorY1.npy')
-    loadImages(random,arr)
+    print(loadImages(random,arr))
+
 
 if __name__ == '__main__':
     main()
