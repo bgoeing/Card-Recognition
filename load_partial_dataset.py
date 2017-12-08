@@ -17,6 +17,7 @@ def loadImages(indices, Y_name):
     for i,index in enumerate(indices):
         X[i] = cv2.imread(filenames[index])
         Y[i] = Y_vector[index]
+
     return X,Y
 
 def createBatchIndices(indices,num_batches):
