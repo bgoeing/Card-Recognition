@@ -13,8 +13,8 @@ The model takes maybe 5-10 minutes to run, so I plugged here the results:
 Logistic Regression 0.994186046512
 Linear Discriminant Analysis 0.895348837209
 K-means 0.424418604651
-Gaussian Naive Bayes 0.447674418605
-Support Vector Machines 0.53488372093
+Gaussian Naive Bayes 0.47
+Support Vector Machines 0.982558139535 (very good when kerner = linear, assuming the data is linearly separable and not require complicated mappings).
 '''
 
 train = list(range(0, 8400, 50))
@@ -33,11 +33,11 @@ X_dev = X_dev.reshape((len(X_dev),480*640*3))
 Y_dev = [list(y).index(1) for y in Y_dev]
 
 models = []
-models.append(('Logistic Regression', LogisticRegression()))
-models.append(('Linear Discriminant Analysis', LinearDiscriminantAnalysis()))
-models.append(('K-means', KNeighborsClassifier()))
+#models.append(('Logistic Regression', LogisticRegression()))
+#models.append(('Linear Discriminant Analysis', LinearDiscriminantAnalysis()))
+#models.append(('K-means', KNeighborsClassifier()))
 models.append(('Gaussian Naive Bayes', GaussianNB()))
-models.append(('Support Vector Machines', SVC()))
+#models.append(('Support Vector Machines', SVC(kernel = 'linear')))
 
 results = []
 names = []
