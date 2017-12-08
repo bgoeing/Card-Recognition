@@ -7,14 +7,16 @@ from PIL import Image
 from scipy import ndimage
 import tensorflow as tf
 from tensorflow.python.framework import ops
-#from cnn_utils import *
+# from cnn_utils import *
 import cv2
 import glob
 from numpy.random import multinomial
-
+import random
+from load_partial_dataset import loadImages
 
 
 np.random.seed(1)
+
 
 def create_placeholders(n_H0, n_W0, n_C0, n_y):
     """
@@ -38,6 +40,7 @@ def create_placeholders(n_H0, n_W0, n_C0, n_y):
 
     return X, Y
 
+
 def initialize_parameters():
     """
     Initializes weight parameters to build a neural network with tensorflow. The shapes are:
@@ -58,6 +61,7 @@ def initialize_parameters():
                   "W2": W2}
 
     return parameters
+
 
 def forward_propagation(X, parameters):
     """
@@ -82,7 +86,7 @@ def forward_propagation(X, parameters):
     Z1 = tf.nn.conv2d(X, W1, strides=[1, 1, 1, 1], padding='SAME')
     # RELU
     A1 = tf.nn.relu(Z1)
-    # MAXPOOL: window 8x8, sride 8, padding 'SAME'
+    # MAXPOOL: window 8x8, stride 8, padding 'SAME'
     P1 = tf.nn.max_pool(A1, ksize=[1, 8, 8, 1], strides=[1, 8, 8, 1], padding='SAME')
     # CONV2D: filters W2, stride 1, padding 'SAME'
     Z2 = tf.nn.conv2d(P1, W2, strides=[1, 1, 1, 1], padding='SAME')
@@ -94,10 +98,11 @@ def forward_propagation(X, parameters):
     P2 = tf.contrib.layers.flatten(P2)
     # FULLY-CONNECTED without non-linear activation function (not not call softmax).
     # 6 neurons in output layer. Hint: one of the arguments should be "activation_fn=None"
-    Z3 = tf.contrib.layers.fully_connected(P2, 6, activation_fn=None)
+    Z3 = tf.contrib.layers.fully_connected(P2, 4, activation_fn=None)
     ### END CODE HERE ###
 
     return Z3
+
 
 def compute_cost(Z3, Y):
     """
@@ -117,90 +122,163 @@ def compute_cost(Z3, Y):
 
     return cost
 
-def loadImages():
-    filenames = glob.glob('generatedCards/*.JPG')
-    i = 0
-    X_all_orig = []
-    for filename in filenames:
-        X_all_orig.append(cv2.imread(filename))
-        print (i)
-        i+=1
-    X_all_orig = np.asarray(X_all_orig)
-    return X_all_orig
 
-def createTTDSets():
+def model(X_train, Y_train, X_test, Y_test, learning_rate=0.009,
+          num_epochs=15, minibatch_size=64, print_cost=True):        #changed num Epochs to 2
+    ops.reset_default_graph()
+    tf.set_random_seed(1)
+    seed = 3
 
-    X_all_orig = np.load("X_all.npy")
-    Y_all = np.load("numpyVectorY1.npy")
-    norm = np.float16(255.)
-    X_all = X_all_orig / norm
+    (m, n_H0, n_W0, n_C0) = X_train.shape
+    n_y = Y_train.shape[1]
+    costs = []
 
-    print("success so far")
+    X, Y = create_placeholders(n_H0, n_W0, n_C0, n_y)
 
-    #a1, a2, a3 = np.vsplit(Y_all[np.random.permutation(Y_all.shape[0])], (7400, 8000))
+    parameters = initialize_parameters()
 
-    n_total_samples = 8400  # make dynamic
+    Z3 = forward_propagation(X, parameters)
+    cost = compute_cost(Z3, Y)
 
-    indices = np.arange(n_total_samples)
-    inds_split = multinomial(n=1,
-                             pvals=[0.8, 0.15, 0.05],
-                             size=n_total_samples).argmax(axis=1)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
-    train_inds = indices[inds_split == 0]
-    test_inds = indices[inds_split == 1]
-    dev_inds = indices[inds_split == 2]
+    init = tf.global_variables_initializer()
+    saver = tf.train.Saver()
 
-    X_train = []
-    Y_train = []
-    X_test = []
-    Y_test = []
-    X_dev = []
-    Y_dev = []
+    with tf.Session() as sess:
+        sess.run(init)
+        for epoch in range(num_epochs):
+            minibatch_cost = 0.
+            num_minibatches = int(m / minibatch_size)  # number of minibatches of size minibatch_size in the train set
+            seed = seed + 1
 
-    for ind in dev_inds:
-        X_dev.append(X_all[ind])
-        Y_dev.append(Y_all[ind])
+            """
+            minibatches = random_mini_batches(X_train, Y_train, 4, minibatch_size, seed)
+            
+            for minibatch in minibatches:
+                (minibatch_X, minibatch_Y) = minibatch
 
-    print("Stop1")
+                _, temp_cost = sess.run([optimizer, cost], feed_dict={X: minibatch_X, Y: minibatch_Y})
+                minibatch_cost += temp_cost / num_minibatches
+            """
 
-    for ind in test_inds:
-        X_test.append(X_all[ind])
-        Y_test.append(Y_all[ind])
+            _, temp_cost = sess.run([optimizer, cost], feed_dict={X: X_train, Y: Y_train})
+            minibatch_cost += temp_cost
 
-    print("Stop2")
+            # Print the cost every epoch
+            if print_cost == True and epoch % 1 == 0:
+                print("Cost after epoch %i: %f" % (epoch, minibatch_cost))
+            if print_cost == True and epoch % 1 == 0:
+                costs.append(minibatch_cost)
 
-    for ind in train_inds:
-        X_train.append(X_all[ind])
-        Y_train.append(Y_all[ind])
+            # plot the cost
+            #plt.plot(np.squeeze(costs))
+            #plt.ylabel('cost')
+            #plt.xlabel('iterations (per tens)')
+            #plt.title("Learning rate =" + str(learning_rate))
+            #plt.show()
 
-    X_train = np.asarray(X_train)
-    Y_train = np.asarray(Y_train)
-    X_test = np.asarray(X_test)
-    Y_test = np.asarray(Y_test)
-    X_dev = np.asarray(X_dev)
-    Y_dev = np.asarray(Y_dev)
+        # Calculate the correct predictions
+        print ("Calculating predictions now")
+        predict_op = tf.argmax(Z3, 1)
+        print("Equal calculation...")
+        correct_prediction = tf.equal(predict_op, tf.argmax(Y, 1))
 
-    print("Stop3")
+        # Calculate accuracy on the test set
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+        print(accuracy)
+        train_accuracy = accuracy.eval({X: X_train, Y: Y_train})
+        test_accuracy = accuracy.eval({X: X_test, Y: Y_test})
+        print("Train Accuracy:", train_accuracy)
+        print("Test Accuracy:", test_accuracy)
 
+        saver.save(sess, "./savedModels/cnn_test_model")
 
-    print("dev done so far")
-    print(X_dev.shape)
-    print(Y_dev.shape)
-
-    np.save("X_train", X_train)
-    np.save("Y_train", Y_train)
-
-    np.save("X_test", X_test)
-    np.save("Y_test", Y_test)
-
-    np.save("X_dev", X_dev)
-    np.save("Y_dev", Y_dev)
+        return train_accuracy, test_accuracy, parameters
 
 
-    print ("lololol")
-    return 5
+def one_hot_matrix(labels, C):
+    """
+    Creates a matrix where the i-th row corresponds to the ith class number and the jth column
+                     corresponds to the jth training example. So if example j had a label i. Then entry (i,j)
+                     will be 1.
+
+    Arguments:
+    labels -- vector containing the labels
+    C -- number of classes, the depth of the one hot dimension
+
+    Returns:
+    one_hot -- one hot matrix
+    """
+
+    ### START CODE HERE ###
+
+    # Create a tf.constant equal to C (depth), name it 'C'. (approx. 1 line)
+    C = tf.constant(C, name="C")
+
+    # Use tf.one_hot, be careful with the axis (approx. 1 line)
+    one_hot_matrix = tf.one_hot(labels, C, 1)
+
+    # Create the session (approx. 1 line)
+    sess = tf.Session()
+
+    # Run the session (approx. 1 line)
+    one_hot = sess.run(one_hot_matrix)
+    #one_hot = one_hot.T
+
+    # Close the session (approx. 1 line). See method 1 above.
+    sess.close()
+
+    ### END CODE HERE ###
+
+    return one_hot
 
 def main():
+    random.seed(1)
+    random_train = [random.randint(0, 8400) for i in range(350)]
+    random_dev = [random.randint(0, 8400) for i in range(100)]
+
+    train_full = [random.randint(0, 8400) for i in range(5000)]
+
+    arr = np.load('vectorY1.npy')
+
+    X_train, Y = loadImages(random_train, arr)
+    X_test, Y_ = loadImages(random_dev, arr)
+
+    Y_values = [list(y).index(1) for y in Y]
+    Y_train = np.asarray(Y_values)
+    #Y_train = Y_values.reshape(Y_values.shape[0], -1)
+
+    Y_testvalues = [list(y).index(1) for y in Y_]
+    Y_test = np.asarray(Y_testvalues)
+    #Y_test = Y_testvalues.reshape(Y_testvalues.shape[0], -1)
+
+    del Y, Y_values
+    del Y_, Y_testvalues
+
+    Y_train = one_hot_matrix(Y_train, C=4)
+    Y_test = one_hot_matrix(Y_test, C=4)
+
+    print(Y_train.shape)
+    print(Y_test.shape)
+
+    _, _, parameters = model(X_train, Y_train, X_test, Y_test)
+    W1 = parameters['W1']
+    W2 = parameters['W2']
+
+    """
+
+    init = tf.global_variables_initializer()
+
+    sess = tf.Session()
+    sess.run(init)
+    v = sess.run(W1)
+    k = sess.run(W2)
+
+    #print(type(tf.Session().run(tf.constant([1, 2, 3]))))
+    """
+
+
     """
 
     a = []
@@ -211,11 +289,6 @@ def main():
     a.append(im2)
     a = np.asarray(a)
     """
-
-    print("hi")
-    n = createTTDSets()
-    print (n)
-
 
     """
     a = []
@@ -280,12 +353,12 @@ def main():
 
 
     # X = np.genfromtxt('logistic_x.txt')
-    
+
     # Create dummy placeholders
     X, Y = create_placeholders(64, 64, 3, 6)
     print("X = " + str(X))
     print("Y = " + str(Y))
-    
+
     # Initialize paramters
     tf.reset_default_graph()
     with tf.Session() as sess_test:
@@ -294,10 +367,10 @@ def main():
         sess_test.run(init)
         print("W1 = " + str(parameters["W1"].eval()[1, 1, 1]))
         print("W2 = " + str(parameters["W2"].eval()[1, 1, 1]))
-    
-    
+
+
     #Forward prop
-    
+
     tf.reset_default_graph()
 
     with tf.Session() as sess:
@@ -309,8 +382,8 @@ def main():
         sess.run(init)
         a = sess.run(Z3, {X: np.random.randn(2, 64, 64, 3), Y: np.random.randn(2, 6)})
         print("Z3 = " + str(a))
-        
-    
+
+
     # Compute Cost
     tf.reset_default_graph()
 
@@ -342,5 +415,7 @@ def main():
     # testfile = open("vectorY1.txt")
     print(testfile)
 """
+
+
 if __name__ == '__main__':
     main()
