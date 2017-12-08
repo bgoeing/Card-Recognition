@@ -12,7 +12,7 @@ import cv2
 import glob
 from numpy.random import multinomial
 import random
-from load_partial_dataset import loadImages
+from load_partial_dataset import loadImages, createBatchIndices
 
 
 np.random.seed(1)
@@ -123,14 +123,14 @@ def compute_cost(Z3, Y):
     return cost
 
 
-def model(X_train, Y_train, X_test, Y_test, learning_rate=0.009,
-          num_epochs=15, minibatch_size=64, print_cost=True):        #changed num Epochs to 2
+def model(batches, dev_indices, Y_name, learning_rate=0.009,
+          num_epochs=10, print_cost=True):        #changed num Epochs to 2
     ops.reset_default_graph()
     tf.set_random_seed(1)
     seed = 3
 
-    (m, n_H0, n_W0, n_C0) = X_train.shape
-    n_y = Y_train.shape[1]
+    n_H0, n_W0, n_C0 = (120, 160, 3)
+    n_y = 4
     costs = []
 
     X, Y = create_placeholders(n_H0, n_W0, n_C0, n_y)
@@ -149,21 +149,15 @@ def model(X_train, Y_train, X_test, Y_test, learning_rate=0.009,
         sess.run(init)
         for epoch in range(num_epochs):
             minibatch_cost = 0.
-            num_minibatches = int(m / minibatch_size)  # number of minibatches of size minibatch_size in the train set
             seed = seed + 1
 
-            """
-            minibatches = random_mini_batches(X_train, Y_train, 4, minibatch_size, seed)
-            
-            for minibatch in minibatches:
-                (minibatch_X, minibatch_Y) = minibatch
-
-                _, temp_cost = sess.run([optimizer, cost], feed_dict={X: minibatch_X, Y: minibatch_Y})
-                minibatch_cost += temp_cost / num_minibatches
-            """
-
-            _, temp_cost = sess.run([optimizer, cost], feed_dict={X: X_train, Y: Y_train})
-            minibatch_cost += temp_cost
+            for i,batch in enumerate(batches):
+                print(i)
+                X_batch, Y_batch = loadImages(batch, Y_name)
+                Y_batch = np.asarray([list(y).index(1) for y in Y_batch])
+                Y_batch = one_hot_matrix(Y_batch, C=4)
+                _, temp_cost = sess.run([optimizer, cost],feed_dict={X: X_batch,Y: Y_batch})
+                minibatch_cost += temp_cost / len(batches)
 
             # Print the cost every epoch
             if print_cost == True and epoch % 1 == 0:
@@ -187,14 +181,25 @@ def model(X_train, Y_train, X_test, Y_test, learning_rate=0.009,
         # Calculate accuracy on the test set
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
         print(accuracy)
-        train_accuracy = accuracy.eval({X: X_train, Y: Y_train})
-        test_accuracy = accuracy.eval({X: X_test, Y: Y_test})
+        print("Calculating train accuracy...")
+        train_accuracy = 0
+        for i, batch in enumerate(batches):
+            print(i)
+            X_batch, Y_batch = loadImages(batch, Y_name)
+            Y_batch = np.asarray([list(y).index(1) for y in Y_batch])
+            Y_batch = one_hot_matrix(Y_batch, C=4)
+            train_accuracy += accuracy.eval({X: X_batch, Y: Y_batch})/len(batches)
+        print("Calculating dev accuracy...")
+        X_dev, Y_dev = loadImages(dev_indices, Y_name)
+        Y_dev = np.asarray([list(y).index(1) for y in Y_dev])
+        Y_dev = one_hot_matrix(Y_dev, C=4)
+        dev_accuracy = accuracy.eval({X: X_dev, Y: Y_dev})
         print("Train Accuracy:", train_accuracy)
-        print("Test Accuracy:", test_accuracy)
+        print("Dev Accuracy:", dev_accuracy)
 
         saver.save(sess, "./savedModels/cnn_test_model")
 
-        return train_accuracy, test_accuracy, parameters
+        return train_accuracy, dev_accuracy, parameters
 
 
 def one_hot_matrix(labels, C):
@@ -235,34 +240,26 @@ def one_hot_matrix(labels, C):
 
 def main():
     random.seed(1)
-    random_train = [random.randint(0, 8400) for i in range(350)]
-    random_dev = [random.randint(0, 8400) for i in range(100)]
 
-    train_full = [random.randint(0, 8400) for i in range(5000)]
+    NUM_IMAGES = 8400
+    NUM_BATCHES = 10
+    indices = np.random.permutation(np.arange(NUM_IMAGES))
+    # splits into 80% train, 15% dev, and 5% test
+    data_dividers = (0.8, 0.15, 0.05)
+    train_limits = (0, int(data_dividers[0] * NUM_IMAGES))
+    dev_limits = (int(data_dividers[0] * NUM_IMAGES),
+                  int(data_dividers[0] * NUM_IMAGES + data_dividers[
+                      1] * NUM_IMAGES))
+    test_limits = \
+        (int(data_dividers[0] * NUM_IMAGES + data_dividers[1] * NUM_IMAGES),
+         NUM_IMAGES)
 
-    arr = np.load('vectorY1.npy')
+    train_inds = indices[train_limits[0]:train_limits[1]]
+    dev_inds = indices[dev_limits[0]:dev_limits[1]]
+    test_inds = indices[test_limits[0]:test_limits[1]]
+    batches = createBatchIndices(train_inds, NUM_BATCHES)
 
-    X_train, Y = loadImages(random_train, arr)
-    X_test, Y_ = loadImages(random_dev, arr)
-
-    Y_values = [list(y).index(1) for y in Y]
-    Y_train = np.asarray(Y_values)
-    #Y_train = Y_values.reshape(Y_values.shape[0], -1)
-
-    Y_testvalues = [list(y).index(1) for y in Y_]
-    Y_test = np.asarray(Y_testvalues)
-    #Y_test = Y_testvalues.reshape(Y_testvalues.shape[0], -1)
-
-    del Y, Y_values
-    del Y_, Y_testvalues
-
-    Y_train = one_hot_matrix(Y_train, C=4)
-    Y_test = one_hot_matrix(Y_test, C=4)
-
-    print(Y_train.shape)
-    print(Y_test.shape)
-
-    _, _, parameters = model(X_train, Y_train, X_test, Y_test)
+    _, _, parameters = model(batches,dev_inds,'vectorY1.npy')
     W1 = parameters['W1']
     W2 = parameters['W2']
 

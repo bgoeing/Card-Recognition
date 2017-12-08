@@ -4,27 +4,20 @@ import glob
 import cv2
 import timeit
 
-def loadImages(indices):
+def loadImages(indices, Y_name):
     """
     Indices: indices of the training example to be used
     Y_vector: The entire Y vector of the training set
     """
-    print('loading Y vectors')
-    Y1_vector = np.load('vectorY1.npy')
-    Y2_vector = np.load('vectorY2.npy')
-    print('getting names')
+    Y_vector = np.load(Y_name)
     filenames = sorted(glob.glob('generatedCards/*.JPG'))
     shape = (len(indices),) + np.asarray(cv2.imread(filenames[0])).shape
     X = np.zeros(shape)
-    Y1 = np.zeros((len(indices),) + Y1_vector[0].shape)
-    Y2 = np.zeros((len(indices),) + Y2_vector[0].shape)
-    print('reading images')
+    Y = np.zeros((len(indices),) + Y_vector[0].shape)
     for i,index in enumerate(indices):
         X[i] = cv2.imread(filenames[index])
-        Y1[i] = Y1_vector[index]
-        Y2[i] = Y2_vector[index]
-    print('done')
-    return X,Y1,Y2
+        Y[i] = Y_vector[index]
+    return X,Y
 
 def createBatchIndices(indices,num_batches):
     """
@@ -60,7 +53,7 @@ def main():
     for i in range(len(batches)):
         print('Batch {0}'.format(i+1))
         start = timeit.default_timer()
-        X,Y1,Y2 = loadImages(batches[i])
+        X,Y = loadImages(batches[i],'vectorY1.npy')
         end = timeit.default_timer()
         print('Time taken: {0}'.format(end - start))
     print('finished')
