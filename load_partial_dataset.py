@@ -4,7 +4,9 @@ import glob
 import cv2
 import timeit
 
+
 def loadImages(indices, Y_name):
+
     """
     Indices: indices of the training example to be used
     Y_vector: The entire Y vector of the training set
@@ -17,6 +19,7 @@ def loadImages(indices, Y_name):
     for i,index in enumerate(indices):
         X[i] = cv2.imread(filenames[index])
         Y[i] = Y_vector[index]
+
     return X,Y
 
 def createBatchIndices(indices,num_batches):
@@ -33,6 +36,7 @@ def createBatchIndices(indices,num_batches):
     return batches
 
 def main():
+
     NUM_IMAGES = 8400
     NUM_BATCHES = 10
     indices = np.random.permutation(np.arange(NUM_IMAGES))
@@ -48,6 +52,7 @@ def main():
     dev_inds = indices[dev_limits[0]:dev_limits[1]]
     test_inds = indices[test_limits[0]:test_limits[1]]
     batches = createBatchIndices(train_inds, NUM_BATCHES)
+
 
     # Test: loading all batches, one after another
     for i in range(len(batches)):
