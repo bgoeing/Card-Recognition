@@ -11,9 +11,7 @@ def main():
     train = list(range(0, 8400, 50))
     dev = list(range(0, 8400, 49))
 
-    arr = np.load('vectorY1.npy')
-
-    X,Y = loadImages(random_train, arr)
+    X,Y = loadImages(random_train, 'vectorY1.npy')
     X_flattened = X.reshape((len(X),120*160*3))
 
     del X
@@ -36,13 +34,8 @@ def main():
 
     del X_flattened, Y_values
 
-<<<<<<< HEAD
-    X_dev, Y_dev = loadImages(random_dev, arr)
+    X_dev, Y_dev = loadImages(random_dev, 'vectorY1.npy')
     X_dev = X_dev.reshape((len(X_dev),120*160*3))
-=======
-    X_dev, Y_dev = loadImages(dev, arr)
-    X_dev = X_dev.reshape((len(X_dev),480*640*3))
->>>>>>> 51a2461024995989530b2a09b509d35af6a32637
     Y_dev = [list(y).index(1) for y in Y_dev]
     p = model.predict(X_dev)
     p = np.asarray(p)

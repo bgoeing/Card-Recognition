@@ -11,8 +11,7 @@ def loadImages(indices, Y_name):
     Indices: indices of the training example to be used
     Y_vector: The entire Y vector of the training set
     """
-    Y_vector = Y_name
-    print Y_vector
+    Y_vector = np.load(Y_name)
     filenames = sorted(glob.glob('generatedCards/*.JPG'))
     shape = (len(indices),) + np.asarray(cv2.imread(filenames[0])).shape
     X = np.zeros(shape)
@@ -20,7 +19,6 @@ def loadImages(indices, Y_name):
     for i,index in enumerate(indices):
         X[i] = cv2.imread(filenames[index])
         Y[i] = Y_vector[index]
-
     return X,Y
 
 def createBatchIndices(indices,num_batches):
@@ -38,8 +36,8 @@ def createBatchIndices(indices,num_batches):
 
 def main():
 
-    NUM_IMAGES = 8400
-    NUM_BATCHES = 10
+    NUM_IMAGES = 54600
+    NUM_BATCHES = 50
     indices = np.random.permutation(np.arange(NUM_IMAGES))
     data_dividers = (0.8,0.15,0.05)
     train_limits = (0,int(data_dividers[0]*NUM_IMAGES))
@@ -59,7 +57,7 @@ def main():
     for i in range(len(batches)):
         print('Batch {0}'.format(i+1))
         start = timeit.default_timer()
-        X,Y = loadImages(batches[i],'vectorY1.npy')
+        X,Y = loadImages(batches[i],'vectorY4.npy')
         end = timeit.default_timer()
         print('Time taken: {0}'.format(end - start))
     print('finished')
