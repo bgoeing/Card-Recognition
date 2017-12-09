@@ -1,5 +1,5 @@
 from PIL import Image, ImageFilter, ImageEnhance
-import os
+import sys,os
 
 '''
 This file loads images from a given folder, creates a new set of augmented images,
@@ -15,13 +15,22 @@ def loadImagesAndNames(directory):
             realImages.append(im)
     return realImages, names
 
-def rotateImages(images, names):
+def rotateImages(images):
     # rotate them 90 degrees to make them vertical.
     rotatedImages = []
     for image in images:
         rotatedImage = image.rotate(90)
         rotatedImages.append(rotatedImage)
-    return rotatedImages, names
+    return rotatedImages
+
+def scaleImages(images):
+    # scale the images: 640x480 -> 160x120
+    size = [160,120]
+    scaledImages = []
+    for image in images:
+        scaledImage = image.resize(size, Image.ANTIALIAS)
+        scaledImages.append(scaledImage)
+    return scaledImages
 
 #for a image, return contrasted images.
 def contrast(image, name, contrastRate, numberImages):
@@ -94,14 +103,14 @@ def saveImages(imageListTuple, newDirectory):
         directory = str(newDirectory+str(im[1]))
         im[0].save(directory, 'JPEG')
 
-
 ''' from a file, return a list of tuples (image, name) for every image created.
 (original images are included in the list also)
 For the case of 80 original images (10 for each 6 and As), the function generates 8.400 images.'''
 def generateSampleOfImages(realCardsDirectory):
     #first create a list of cards and a list of names, from pictures in a folder.
     realCards, names = loadImagesAndNames(realCardsDirectory)
-    rotateImages(realCards, names)
+    realCards = rotateImages(realCards)
+    realCards = scaleImages(realCards)
     #I create a list of tuples for the new images
     # and the names associated with them.
     newImages = []
@@ -110,7 +119,7 @@ def generateSampleOfImages(realCardsDirectory):
         zoomImages = multipleZoom(card, names[i], 0.05, 5)
         # here I add the new card and its type.
         newImages = newImages + zoomImages
-    print len(newImages)
+    print(len(newImages))
     #add modified images (contrast, new color, brightness)
     modifiedList = []
     for im in newImages:
@@ -118,13 +127,13 @@ def generateSampleOfImages(realCardsDirectory):
         modifiedList = modifiedList + color(im[0], im[1], 0.3, 1)
         modifiedList = modifiedList + brightness(im[0], im[1], 0.2, 3)
     newImages = newImages + modifiedList
-    print len(newImages)
+    print(len(newImages))
     # I combine sharpness with all the other modifications.
     sharpList = []
     for im in newImages:
         sharpList = sharpList + sharpness(im[0], im[1], 0.5, 2)
     newImages = newImages + sharpList
-    print 'new set of images have '+str(len(newImages))+' images.'
+    print('new set of images have '+str(len(newImages))+' images.')
     return newImages
 
 
@@ -133,12 +142,10 @@ and the directory where the new cards will be saved.
 Do not run this before emptying the folder where the new cards will be.
 '''
 def main():
-
-    realCardsDirectory = '/Users/matiascastillo/Desktop/CS229/Project/newImages/realCards/'
+    realCardsDirectory = os.path.dirname(sys.argv[0]) + '/realCards/'
     Images = generateSampleOfImages(realCardsDirectory)
-    newDirectory = '/Users/matiascastillo/Desktop/CS229/Project/newImages/generatedCards/'
-    #saveImages(Images, newDirectory)
-
+    newDirectory = os.path.dirname(sys.argv[0]) + '/generatedCards/'
+    saveImages(Images, newDirectory)
     return
 
 if __name__ == '__main__':
