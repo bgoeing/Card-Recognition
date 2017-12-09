@@ -1,1 +1,3 @@
 *.JPG
+savedParameters/*
+!savedParameters/.gitkeep
