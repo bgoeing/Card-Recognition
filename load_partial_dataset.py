@@ -37,10 +37,10 @@ def createBatchIndices(indices,num_batches):
 
 def main():
 
-    NUM_IMAGES = 8400
-    NUM_BATCHES = 10
+    NUM_IMAGES = 54600
+    NUM_BATCHES = 20
     indices = np.random.permutation(np.arange(NUM_IMAGES))
-    data_dividers = (0.8,0.15,0.05)
+    data_dividers = (0.9,0.05,0.05)
     train_limits = (0,int(data_dividers[0]*NUM_IMAGES))
     dev_limits = (int(data_dividers[0]*NUM_IMAGES),
         int(data_dividers[0] * NUM_IMAGES + data_dividers[1]*NUM_IMAGES))
@@ -58,7 +58,7 @@ def main():
     for i in range(len(batches)):
         print('Batch {0}'.format(i+1))
         start = timeit.default_timer()
-        X,Y = loadImages(batches[i],'vectorY1.npy')
+        X,Y = loadImages(batches[i],'vectorY52.npy')
         end = timeit.default_timer()
         print('Time taken: {0}'.format(end - start))
     print('finished')

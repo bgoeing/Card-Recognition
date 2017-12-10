@@ -121,14 +121,14 @@ def compute_cost(Z3, Y):
     return cost
 
 def model(batches, dev_indices, Y_name, learning_rate = 0.01,
-          num_epochs=5, print_cost=True):        #changed num Epochs to 2
+          num_epochs=2, print_cost=True):        #changed num Epochs to 2
     ops.reset_default_graph()
     tf.reset_default_graph()
     tf.set_random_seed(1)
     seed = 1
 
-    n_H0, n_W0, n_C0 = (120, 160, 3)
-    n_y = 8     # Change output size here
+    n_H0, n_W0, n_C0 = (160, 120, 3)
+    n_y = 52     # Change output size here
     costs = []
 
     X, Y = create_placeholders(n_H0, n_W0, n_C0, n_y)
@@ -237,11 +237,11 @@ def one_hot_matrix(labels, C):
 def main():
     random.seed(1)
 
-    NUM_IMAGES = 8400
-    NUM_BATCHES = 10
+    NUM_IMAGES = 54600
+    NUM_BATCHES = 20
     indices = np.random.permutation(np.arange(NUM_IMAGES))
-    # splits into 80% train, 15% dev, and 5% test
-    data_dividers = (0.8, 0.15, 0.05)
+    # splits into 90% train, 5% dev, and 5% test
+    data_dividers = (0.9, 0.05, 0.05)
     train_limits = (0, int(data_dividers[0] * NUM_IMAGES))
     dev_limits = (int(data_dividers[0] * NUM_IMAGES),
                   int(data_dividers[0] * NUM_IMAGES + data_dividers[
