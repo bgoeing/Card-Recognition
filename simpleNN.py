@@ -151,7 +151,7 @@ def backward_prop(data, labels, params):
 def nn_train(batches,dev_indices,Y_name, learning_rate=0.1,num_epochs = 10,print_cost=True, start_params = None):
     n_H0, n_W0, n_C0 = (120, 160, 3)
     # n_H0, n_W0, n_C0 = (480, 640, 3)
-    n_y = 4
+    n_y = 52
     features = n_H0*n_W0*n_C0
     outputs = n_y
 
@@ -178,7 +178,7 @@ def nn_train(batches,dev_indices,Y_name, learning_rate=0.1,num_epochs = 10,print
             X_batch = X_batch / 255
             X_batch = np.reshape(X_batch,(len(X_batch),n_H0*n_W0* n_C0))
             Y_batch = np.asarray([list(y).index(1) for y in Y_batch])
-            Y_batch = one_hot_labels(Y_batch, C=4)
+            Y_batch = one_hot_labels(Y_batch, C=n_y)
 
             grad = backward_prop(X_batch, Y_batch,
                                  params)
@@ -196,7 +196,7 @@ def nn_train(batches,dev_indices,Y_name, learning_rate=0.1,num_epochs = 10,print
                                  (len(X_batch), n_H0 * n_W0 * n_C0))
             X_batch = X_batch/255
             Y_batch = np.asarray([list(y).index(1) for y in Y_batch])
-            Y_batch = one_hot_labels(Y_batch, C=4)
+            Y_batch = one_hot_labels(Y_batch, C=n_y)
 
             trainLoss[e] += forward_prop(X_batch, Y_batch, params)[3]/len(batches)
             trainAcc[e] += nn_test(X_batch, Y_batch, params)/len(batches)
@@ -205,7 +205,7 @@ def nn_train(batches,dev_indices,Y_name, learning_rate=0.1,num_epochs = 10,print
                              (len(X_dev), n_H0 * n_W0 * n_C0))
         X_dev = X_dev / 255
         Y_dev = np.asarray([list(y).index(1) for y in Y_dev])
-        Y_dev = one_hot_labels(Y_dev, C=4)
+        Y_dev = one_hot_labels(Y_dev, C=n_y)
         devLoss[e] = forward_prop(X_dev, Y_dev, params)[3]
         devAcc[e] = nn_test(X_dev, Y_dev, params)
 
@@ -246,12 +246,12 @@ def main():
     trainData = (trainData - mean) / std
     devData = (devData - mean) / std
     """
-    NUM_IMAGES = 8400
-    NUM_BATCHES = 2
+    NUM_IMAGES = 54600
+    NUM_BATCHES = 30
     NUM_EPOCHS = 30
     indices = np.random.permutation(np.arange(NUM_IMAGES))
-    # splits into 80% train, 15% dev, and 5% test
-    data_dividers = (0.8, 0.15, 0.05)
+    # splits into 90% train, 5% dev, and 5% test
+    data_dividers = (0.9, 0.05, 0.05)
     train_limits = (0, int(data_dividers[0] * NUM_IMAGES))
     dev_limits = (int(data_dividers[0] * NUM_IMAGES),
                   int(data_dividers[0] * NUM_IMAGES + data_dividers[
@@ -268,7 +268,7 @@ def main():
     print('{0} examples'.format(len(train_inds)))
     print('{0} batches'.format(len(batches)))
 
-    params = nn_train(batches,dev_inds,'vectorY1.npy',num_epochs=NUM_EPOCHS)
+    params = nn_train(batches,dev_inds,'vectorY4.npy',num_epochs=NUM_EPOCHS)
     saver.saveParameters(params,'test.txt')
 
     readyForTesting = False
@@ -280,7 +280,7 @@ def main():
         X_test = np.reshape(X_test,
                            (len(X_test), n_H0 * n_W0 * n_C0))
         Y_test = np.asarray([list(y).index(1) for y in Y_test])
-        Y_test = one_hot_labels(Y_test, C=4)
+        Y_test = one_hot_labels(Y_test, C=52)
         accuracy = nn_test(X_test, Y_test, params)
         print('Test accuracy: %f' % accuracy)
 
