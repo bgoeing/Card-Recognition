@@ -34,7 +34,7 @@ def loadImagesX(indices, Y_vector):
     Y_vector: The entire Y vector of the training set
     """
     filenames = sorted(glob.glob('/Users/matiascastillo/Desktop/CS229/Project/newImages/resizedCards/*.JPG'))
-    print len(filenames)
+    print(len(filenames))
     shape = (len(indices),) + np.asarray(cv2.imread(filenames[0])).shape
     X = np.zeros(shape)
     Y = np.zeros((len(indices),)+Y_vector[0].shape)

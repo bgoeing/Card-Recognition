@@ -11,8 +11,20 @@ def loadImagesAndNames(directory):
     names = [name for name in os.listdir(directory) if name != ".DS_Store"]
     for item in names:
         if os.path.isfile(directory+item):
-            im=Image.open(directory+item)
-            realImages.append(im)
+            image = Image.open(directory+item)
+            if hasattr(image, '_getexif'):
+                orientation = 0x0112
+                exif = image._getexif()
+                if exif is not None:
+                    orientation = exif[orientation]
+                    rotations = {
+                        3: Image.ROTATE_180,
+                        6: Image.ROTATE_270,
+                        8: Image.ROTATE_90
+                    }
+                    if orientation in rotations:
+                        image = image.transpose(rotations[orientation])
+            realImages.append(image)
     return realImages, names
 
 def rotateImages(images):
@@ -24,8 +36,8 @@ def rotateImages(images):
     return rotatedImages
 
 def scaleImages(images):
-    # scale the images: 640x480 -> 160x120
-    size = [160,120]
+    # scale the images: 480x640 -> 120x160
+    size = [120,160]
     scaledImages = []
     for image in images:
         scaledImage = image.resize(size, Image.ANTIALIAS)
@@ -109,7 +121,7 @@ For the case of 80 original images (10 for each 6 and As), the function generate
 def generateSampleOfImages(realCardsDirectory):
     #first create a list of cards and a list of names, from pictures in a folder.
     realCards, names = loadImagesAndNames(realCardsDirectory)
-    realCards = rotateImages(realCards)
+    #realCards = rotateImages(realCards)
     realCards = scaleImages(realCards)
     #I create a list of tuples for the new images
     # and the names associated with them.
@@ -142,7 +154,7 @@ and the directory where the new cards will be saved.
 Do not run this before emptying the folder where the new cards will be.
 '''
 def main():
-    realCardsDirectory = os.path.dirname(sys.argv[0]) + '/realCards/'
+    realCardsDirectory = os.path.dirname(sys.argv[0]) + '/all_real_images/'
     Images = generateSampleOfImages(realCardsDirectory)
     newDirectory = os.path.dirname(sys.argv[0]) + '/generatedCards/'
     saveImages(Images, newDirectory)
