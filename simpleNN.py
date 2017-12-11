@@ -169,11 +169,9 @@ def nn_train(batches,dev_indices,Y_name, learning_rate=0.1,num_epochs = 10,print
     for e in range(num_epochs):
         learning_rate = learning_rate * (10 * num_epochs - e) / (
         10 * num_epochs)
+        print('epoch: {0}'.format(e + 1))
         print('learning rate: {0}'.format(learning_rate))
         for b, batch in enumerate(batches):
-            print('epoch: {0}, batch: {1}'.format(e + 1,
-                                                  b + 1))
-
             X_batch, Y_batch = loadImages(batch, Y_name)
             X_batch = X_batch / 255
             X_batch = np.reshape(X_batch,(len(X_batch),n_H0*n_W0* n_C0))
@@ -214,7 +212,8 @@ def nn_train(batches,dev_indices,Y_name, learning_rate=0.1,num_epochs = 10,print
         if print_cost:
             print("Train cost after epoch %i: %f" % (e+1, trainLoss[e]))
             print("Train accuracy after epoch %i: %f" % (e+1, trainAcc[e]))
-        #print("Dev cost after epoch %i: %f" % (e, devLoss[e]))
+            print("Dev cost after epoch %i: %f" % (e + 1, devLoss[e]))
+            print("Dev accuracy after epoch %i: %f" % (e + 1, devAcc[e]))
     plot_line(trainLoss, devLoss,'loss.png','Loss',epochs=num_epochs)
     plot_line(trainAcc, devAcc,'accuracy.png','Accuracy',epochs=num_epochs)
     ### END YOUR CODE
@@ -240,12 +239,6 @@ def one_hot_labels(labels,C):
 
 def main():
     np.random.seed(100)
-    """
-    mean = np.mean(trainData)
-    std = np.std(trainData)
-    trainData = (trainData - mean) / std
-    devData = (devData - mean) / std
-    """
     NUM_IMAGES = 54600
     NUM_BATCHES = 30
     NUM_EPOCHS = 30
@@ -265,16 +258,17 @@ def main():
     test_inds = indices[test_limits[0]:test_limits[1]]
     batches = createBatchIndices(train_inds, NUM_BATCHES)
 
-    print('{0} examples'.format(len(train_inds)))
+    print('{0} training examples'.format(len(train_inds)))
     print('{0} batches'.format(len(batches)))
 
-    params = nn_train(batches,dev_inds,'vectorY4.npy',num_epochs=NUM_EPOCHS)
-    saver.saveParameters(params,'test.txt')
+    params = nn_train(batches,dev_inds,'vectorY52.npy',num_epochs=NUM_EPOCHS)
+    saver.saveParameters(params,'new.txt')
+    #params = saver.loadParameters('54600-52classes.txt')
 
     readyForTesting = False
     if readyForTesting:
         print('Testing...')
-        X_test, Y_test = loadImages(test_inds, 'vectorY1.npy')
+        X_test, Y_test = loadImages(test_inds, 'vectorY52.npy')
         n_H0 , n_W0 , n_C0 = X_test[0].shape
         X_test = X_test/255
         X_test = np.reshape(X_test,
