@@ -11,7 +11,10 @@ def main():
     train = list(range(0, 8400, 50))
     dev = list(range(0, 8400, 49))
 
-    X,Y = loadImages(random_train, 'vectorY1.npy')
+
+    arr = np.load('vectorY52.npy')
+
+    X,Y = loadImages(random_train, arr)
     X_flattened = X.reshape((len(X),120*160*3))
 
     del X

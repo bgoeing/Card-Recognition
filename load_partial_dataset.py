@@ -58,7 +58,9 @@ def main():
         print('Batch {0}'.format(i+1))
         print('size {0}'.format(len(batches[i])))
         start = timeit.default_timer()
-        X,Y = loadImages(batches[i],'vectorY4.npy')
+
+        X,Y = loadImages(batches[i],'vectorY52.npy')
+
         end = timeit.default_timer()
         print('Time taken: {0}'.format(end - start))
     print('finished')

@@ -12,6 +12,7 @@ import glob
 from numpy.random import multinomial
 import random
 from load_partial_dataset import loadImages, createBatchIndices
+import saver as psaver
 
 np.random.seed(1)
 
@@ -120,16 +121,38 @@ def compute_cost(Z3, Y):
 
     return cost
 
-def model(batches, dev_indices, Y_name, learning_rate = 0.01,
+def plot(train, dev, num_epochs, figurename):
+    X = list(range(0, num_epochs))
+
+    plt.figure()
+
+    plt.xlabel('no. of epochs')
+
+    if figurename == "cost.png":
+        header = "Cost vs. no. of epochs"
+        plt.ylabel('Cost')
+
+    else:
+        header = "Accuracy vs. no. of epochs"
+        plt.ylabel('Accuracy')
+
+    plt.plot(X, train, linewidth=2.0, color = "blue", label = "train")
+    plt.plot(X, dev, linewidth=2.0, color="red", label = "dev")
+
+    plt.suptitle(header, fontsize=20)
+    plt.legend(loc=9, bbox_to_anchor=(0.9, 1))
+    plt.savefig(figurename)
+    plt.show
+
+def model(batches, dev_indices, test_indices, Y_name, learning_rate = 0.01,
           num_epochs=5, print_cost=True):        #changed num Epochs to 2
     ops.reset_default_graph()
     tf.reset_default_graph()
     tf.set_random_seed(1)
     seed = 1
 
-    n_H0, n_W0, n_C0 = (120, 160, 3)
-    n_y = 8     # Change output size here
-    costs = []
+    n_H0, n_W0, n_C0 = (160, 120, 3)
+    n_y = 52     # Change output size here
 
     X, Y = create_placeholders(n_H0, n_W0, n_C0, n_y)
     parameters = initialize_parameters()
@@ -141,6 +164,11 @@ def model(batches, dev_indices, Y_name, learning_rate = 0.01,
     init = tf.global_variables_initializer()
     saver = tf.train.Saver()
 
+    train_cost_list = []
+    train_acc_list = []
+    dev_cost_list = []
+    dev_acc_list = []
+
     with tf.Session() as sess:
         sess.run(init)
         for epoch in range(num_epochs):
@@ -149,61 +177,91 @@ def model(batches, dev_indices, Y_name, learning_rate = 0.01,
             train_accuracy = 0.0
 
             for i,batch in enumerate(batches):
-                print("Batch:", i)
+                if print_cost == True and i % 5 == 0:
+                    print("Batch:", i)
                 X_batch, Y_batch = loadImages(batch, Y_name)
                 X_batch = X_batch/255.
                 Y_batch = np.asarray([list(y).index(1) for y in Y_batch])
                 Y_batch = one_hot_matrix(Y_batch, C=n_y)
                 _, temp_cost = sess.run([optimizer, cost],feed_dict={X: X_batch,Y: Y_batch})
                 minibatch_cost += temp_cost / len(batches)
-                #tf.Print(Z3, [Z3])
+                """
                 predict_op = tf.argmax(Z3, 1)
                 correct_prediction = tf.equal(predict_op, tf.argmax(Y, 1))
                 accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
                 train_accuracy += accuracy.eval({X: X_batch, Y: Y_batch}) / len(batches)
-            print("Train Accuracy:", train_accuracy)
+                print("Train Accuracy:", train_accuracy)
+                """
 
             # Print the cost every epoch
             if print_cost == True and epoch % 1 == 0:
                 print("Cost after epoch %i: %f" % (epoch, minibatch_cost))
             if print_cost == True and epoch % 1 == 0:
-                costs.append(minibatch_cost)
+                train_cost_list.append(minibatch_cost)
 
-            # plot the cost
-            #plt.plot(np.squeeze(costs))
-            #plt.ylabel('cost')
-            #plt.xlabel('iterations (per tens)')
-            #plt.title("Learning rate =" + str(learning_rate))
-            #plt.show()
 
-        # Calculate the correct predictions
-        print ("Calculating predictions now")
-        predict_op = tf.argmax(Z3, 1)
-        print("Equal calculation...")
-        correct_prediction = tf.equal(predict_op, tf.argmax(Y, 1))
+            # Calculate the correct predictions
+            print ("Calculating predictions now")
+            predict_op = tf.argmax(Z3, 1)
+            print("Equal calculation...")
+            correct_prediction = tf.equal(predict_op, tf.argmax(Y, 1))
 
-        # Calculate accuracy on the test set
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-        print(accuracy)
-        print("Calculating train accuracy...")
-        train_accuracy = 0
-        for i, batch in enumerate(batches):
-            print("Batch:", i)
-            X_batch, Y_batch = loadImages(batch, Y_name)
-            Y_batch = np.asarray([list(y).index(1) for y in Y_batch])
-            Y_batch = one_hot_matrix(Y_batch, C=n_y)
-            train_accuracy += accuracy.eval({X: X_batch, Y: Y_batch})/len(batches)
-        print("Calculating dev accuracy...")
-        X_dev, Y_dev = loadImages(dev_indices, Y_name)
-        Y_dev = np.asarray([list(y).index(1) for y in Y_dev])
-        Y_dev = one_hot_matrix(Y_dev, C=n_y)
-        dev_accuracy = accuracy.eval({X: X_dev, Y: Y_dev})
-        print("Train Accuracy:", train_accuracy)
-        print("Dev Accuracy:", dev_accuracy)
+            # Calculate accuracies
+            accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+            print(accuracy)
+            print("Calculating train accuracy...")
+            train_accuracy = 0
+            for i, batch in enumerate(batches):
+                if print_cost == True and i % 5 == 0:
+                    print("Train accuracy calc: Batch:", i)
+                X_batch, Y_batch = loadImages(batch, Y_name)
+                Y_batch = np.asarray([list(y).index(1) for y in Y_batch])
+                Y_batch = one_hot_matrix(Y_batch, C=n_y)
+                train_accuracy += accuracy.eval({X: X_batch, Y: Y_batch})/len(batches)
+
+
+            print("Calculating dev accuracy...")
+            X_dev, Y_dev = loadImages(dev_indices, Y_name)
+            Y_dev = np.asarray([list(y).index(1) for y in Y_dev])
+            Y_dev = one_hot_matrix(Y_dev, C=n_y)
+            dev_accuracy = accuracy.eval({X: X_dev, Y: Y_dev})
+
+            print("Train Accuracy:", train_accuracy)
+            print("Dev Accuracy:", dev_accuracy)
+
+            #Z3_dev = forward_propagation(X, parameters, n_y)
+            #dev_cost = compute_cost(Z3_dev, Y_dev)
+
+            #dev_cost_list.append(dev_cost)
+            train_acc_list.append(train_accuracy)
+            dev_acc_list.append(dev_accuracy)
+
+            print(train_acc_list)
+            print(dev_acc_list)
+
+        plot(train_acc_list, dev_acc_list,num_epochs, "cnn_accuracy.png")
+        """
+        print("Calculating test accuracy...")
+        X_test, Y_test = loadImages(test_indices, Y_name)
+        Y_test = np.asarray([list(y).index(1) for y in Y_test])
+        Y_test = one_hot_matrix(Y_test, C=n_y)
+        test_accuracy = accuracy.eval({X: X_test, Y: Y_test})
+        print("Test Accuracy:", test_accuracy)
+
+        print(train_cost_list)
+ 
+        #print(dev_cost_list)
+        """
 
         saver.save(sess, "./savedModels/cnn_test_model")
 
-        return train_accuracy, dev_accuracy, parameters
+        # plot the cost
+        # plt.plot(np.squeeze(costs))
+        # plt.ylabel('cost')
+        # plt.xlabel('iterations (per tens)')
+        # plt.title("Learning rate =" + str(learning_rate))
+        # plt.show()
+        return parameters
 
 
 def one_hot_matrix(labels, C):
@@ -237,11 +295,11 @@ def one_hot_matrix(labels, C):
 def main():
     random.seed(1)
 
-    NUM_IMAGES = 8400
-    NUM_BATCHES = 10
+    NUM_IMAGES = 54600
+    NUM_BATCHES = 20
     indices = np.random.permutation(np.arange(NUM_IMAGES))
-    # splits into 80% train, 15% dev, and 5% test
-    data_dividers = (0.8, 0.15, 0.05)
+    # splits into 90% train, 5% dev, and 5% test
+    data_dividers = (0.05, 0.05, 0.9)
     train_limits = (0, int(data_dividers[0] * NUM_IMAGES))
     dev_limits = (int(data_dividers[0] * NUM_IMAGES),
                   int(data_dividers[0] * NUM_IMAGES + data_dividers[
@@ -258,9 +316,7 @@ def main():
     print(max(dev_inds))
     print(max(test_inds))
 
-    _, _, parameters = model(batches,dev_inds,'vectorY3.npy')
-    W1 = parameters['W1']
-    W2 = parameters['W2']
+    parameters = model(batches, dev_inds, test_inds, 'vectorY52.npy')
 
 if __name__ == '__main__':
     main()
