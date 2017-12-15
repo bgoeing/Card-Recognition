@@ -1,53 +1,86 @@
-from sklearn.linear_model import LogisticRegression
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
+from sklearn.linear_model import SGDClassifier
 import numpy as np
+import random
 from load_partial_dataset import loadImages
+import math
 
 '''
 Just checking how other standard models perform in this datasets.
-The model takes maybe 5-10 minutes to run, so I plugged here the results:
-
-Logistic Regression 0.994186046512
+Multiclass Logistic Regression (with OVA)
+Multiclass Support Vector Machines (with OVA)
 Linear Discriminant Analysis 0.895348837209
 K-means 0.424418604651
 Gaussian Naive Bayes 0.47
-Support Vector Machines 0.982558139535 (very good when kerner = linear, assuming the data is linearly separable and not require complicated mappings).
 '''
+random.seed(1)
 
-train = list(range(0, 8400, 50))
-dev = list(range(0, 8400, 49))
+train = [random.randint(0,52000) for i in range(2000)]
+dev = [random.randint(0,52000) for i in range(500)]
+#dev = list(range(0, 52000, 100))
+dev = [x for x in dev if x not in train]
 
-arr = np.load('vectorY1.npy')
-X,Y = loadImages(train, arr)
-X_flattened = X.reshape((len(X),480*640*3))
+
+#arr = np.load('vectorY52.npy')
+X,Y = loadImages(train, 'vectorY52.npy')
+X_flattened = X.reshape((len(X),120*160*3))
 del X
 # Convert vectors to value
 Y_values = [list(y).index(1) for y in Y]
 del Y
 
-X_dev, Y_dev = loadImages(dev, arr)
-X_dev = X_dev.reshape((len(X_dev),480*640*3))
+X_dev, Y_dev = loadImages(dev, 'vectorY52.npy')
+X_dev = X_dev.reshape((len(X_dev),120*160*3))
 Y_dev = [list(y).index(1) for y in Y_dev]
 
-models = []
-#models.append(('Logistic Regression', LogisticRegression()))
-#models.append(('Linear Discriminant Analysis', LinearDiscriminantAnalysis()))
-#models.append(('K-means', KNeighborsClassifier()))
-models.append(('Gaussian Naive Bayes', GaussianNB()))
-#models.append(('Support Vector Machines', SVC(kernel = 'linear')))
+alpha = 0.1
+print 'MLR'
 
-results = []
-names = []
-for name, model in models:
-	model.fit(X_flattened, Y_values)
-	model.predict(X_dev)
-	results.append(model.score(X_dev,Y_dev))
-	names.append(name)
+def modelsByIteration(X_flattened, Y_values, X_dev, Y_dev, modelType, alpha):
+	iterations = 2
+	while iterations <= 30:
+		model = SGDClassifier(loss = modelType, alpha = alpha, max_iter = iterations)
+		#model = SGDClassifier(loss = 'hinge', penalty = 'none', max_iter = iterations)
+		#model = LogisticRegression(multi_class='multinomial')
+		#models.append(('Linear Discriminant Analysis', LinearDiscriminantAnalysis()))
+		#models.append(('K-means', KNeighborsClassifier()))
+		#models.append(('Gaussian Naive Bayes', GaussianNB()))
+		#models.append(('Support Vector Machines', SVC(kernel = 'linear')))
+		model.fit(X_flattened, Y_values)
+		print iterations
+		print 'iteration = '+str(iterations)
+		print('Training Accuracy:')
+		print(model.score(X_flattened,Y_values))
+		model.predict(X_dev)
+		print('Dev Accuracy:')
+		print(model.score(X_dev,Y_dev))
+		iterations = iterations + 2
+
+def chooseLambda(X_flattened, Y_values, X_dev, Y_dev, modelType):
+	learnrate = -4.0
+	accuraciesT = []
+	accuraciesD = []
+	rates = [x for x in range(0, 11)]
+	lambdas = []
+
+	for rate in rates:
+		alpha = math.pow(10, (learnrate*rate/12))
+		lambdas.append(alpha)
+		print 'lambda', alpha
+
+		model = SGDClassifier(loss = modelType, alpha = alpha, max_iter =30)
+
+		model.fit(X_flattened, Y_values)
+		print('Training Accuracy:')
+		accuracyT = model.score(X_flattened,Y_values)
+		print(accuracyT)
+		accuraciesT.append(float(accuracyT))
+		model.predict(X_dev)
+		print('Dev Accuracy:')
+		accuracyD = model.score(X_dev,Y_dev)
+		print(accuracyD)
+		accuraciesD.append(float(accuracyD))
 
 
-for i, result in enumerate(results):
-	print names[i], result
+#chooseLambda(X_flattened, Y_values, X_dev, Y_dev, 'log')
 
+modelsByIteration(X_flattened, Y_values, X_dev, Y_dev, 'log', 0.1)

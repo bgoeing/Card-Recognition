@@ -5,16 +5,15 @@ from load_partial_dataset import loadImages
 
 def main():
     random.seed(1)
-    random_train = [random.randint(0,8400) for i in range(100)]
-    random_dev = [random.randint(0,8400) for i in range(500)]
+    random_train = [random.randint(0,52000) for i in range(5000)]
+    random_dev = [random.randint(0,52000) for i in range(5000)]
 
     train = list(range(0, 8400, 50))
     dev = list(range(0, 8400, 49))
 
+    arr = np.random.permutation('vectorY52.npy')
 
-    arr = np.load('vectorY52.npy')
-
-    X,Y = loadImages(random_train, arr)
+    X,Y = loadImages(random_train, 'vectorY52.npy')
     X_flattened = X.reshape((len(X),120*160*3))
 
     del X
@@ -37,7 +36,7 @@ def main():
 
     del X_flattened, Y_values
 
-    X_dev, Y_dev = loadImages(random_dev, 'vectorY1.npy')
+    X_dev, Y_dev = loadImages(random_dev, arr)
     X_dev = X_dev.reshape((len(X_dev),120*160*3))
     Y_dev = [list(y).index(1) for y in Y_dev]
     p = model.predict(X_dev)

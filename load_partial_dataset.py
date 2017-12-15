@@ -12,7 +12,7 @@ def loadImages(indices, Y_name):
     Y_vector: The entire Y vector of the training set
     """
     Y_vector = np.load(Y_name)
-    filenames = sorted(glob.glob('generatedCards/*.JPG'))
+    filenames = sorted(glob.glob('created_images/*.JPG'))
     shape = (len(indices),) + np.asarray(cv2.imread(filenames[0])).shape
     X = np.zeros(shape)
     Y = np.zeros((len(indices),) + Y_vector[0].shape)
