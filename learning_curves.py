@@ -23,7 +23,6 @@ def testModel(model):
     train5 = list(range(0, 8400, 32)) #250 images
     train6 = list(range(0, 8400, 23)) #400 images
     train7 = list(range(0, 8400, 12)) #600 images
-
     arr = np.load('vectorY3.npy')
     X,Y = loadImages(train3, arr)
     X_flattened = X.reshape((len(X),480*640*3))
@@ -32,11 +31,9 @@ def testModel(model):
     Y_values = [list(y).index(1) for y in Y]
     del Y
     model.fit(X_flattened,Y_values)
-
     devSets = []
     for _ in range(10):
         devSets.append(random.sample(range(0, 8400), 200))
-
     results = []
     for dev in devSets:
         X_dev, Y_dev = loadImages(dev, arr)

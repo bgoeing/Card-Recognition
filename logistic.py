@@ -3,19 +3,20 @@ import numpy as np
 import random
 from load_partial_dataset import loadImages
 
+
+'''
+In this file we tested an initial logistic regression model.
+
+'''
+
 def main():
     random.seed(1)
     random_train = [random.randint(0,52000) for i in range(5000)]
     random_dev = [random.randint(0,52000) for i in range(5000)]
-
     train = list(range(0, 8400, 50))
     dev = list(range(0, 8400, 49))
-
-    arr = np.random.permutation('vectorY52.npy')
-
     X,Y = loadImages(random_train, 'vectorY52.npy')
     X_flattened = X.reshape((len(X),120*160*3))
-
     del X
     # Convert vectors to value
     Y_values = [list(y).index(1) for y in Y]
